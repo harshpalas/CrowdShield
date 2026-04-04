@@ -46,25 +46,94 @@ interface Report {
 interface AppState {
   user: User | null;
   isAuthenticated: boolean;
-  reports: Report[];
-  heatmapData: any[];
   setUser: (user: User | null) => void;
   logout: () => void;
+  updateUser: (userData: Partial<User>) => void;
+  userLocation: { lat: number; lng: number } | null;
+  setUserLocation: (location: { lat: number; lng: number } | null) => void;
+  reports: Report[];
   setReports: (reports: Report[]) => void;
   addReport: (report: Report) => void;
+  heatmapData: any[];
   setHeatmapData: (data: any[]) => void;
+  isSimulating: boolean;
+  setIsSimulating: (isSimulating: boolean) => void;
+  isReporting: boolean;
+  setIsReporting: (isReporting: boolean) => void;
+  reportLocation: { lat: number; lng: number } | null;
+  setReportLocation: (location: { lat: number; lng: number } | null) => void;
+  safeRoute: any[] | null;
+  setSafeRoute: (route: any[] | null) => void;
+  isAdminMode: boolean;
+  setIsAdminMode: (isAdminMode: boolean) => void;
+  updateReportStatus: (reportId: string, status: 'pending' | 'monitoring' | 'cleared') => void;
+  destination: { lat: number; lng: number } | null;
+  setDestination: (location: { lat: number; lng: number } | null) => void;
+  navigationTargetName: string | null;
+  setNavigationTargetName: (name: string | null) => void;
+  isNavigating: boolean;
+  setIsNavigating: (isNavigating: boolean) => void;
+  availableRoutes: any[];
+  setAvailableRoutes: (routes: any[]) => void;
+  isPathCompromised: boolean;
+  setPathCompromised: (isPathCompromised: boolean) => void;
+  navigationAlert: string | null;
+  setNavigationAlert: (alert: string | null) => void;
+  isSelectingDestination: boolean;
+  setIsSelectingDestination: (isSelectingDestination: boolean) => void;
+  fetchReports: () => Promise<void>;
 }
 
-const useStore = create<AppState>((set) => ({
+export const useStore = create<AppState>((set) => ({
   user: null,
   isAuthenticated: false,
-  reports: [],
-  heatmapData: [],
-  setUser: (user) => set({ user, isAuthenticated: true }),
+  setUser: (user) => set({ user, isAuthenticated: !!user }),
   logout: () => set({ user: null, isAuthenticated: false }),
+  updateUser: (userData) => set((state) => ({ 
+    user: state.user ? { ...state.user, ...userData } : null 
+  })),
+  userLocation: null,
+  setUserLocation: (userLocation) => set({ userLocation }),
+  reports: [],
   setReports: (reports) => set({ reports }),
   addReport: (report) => set((state) => ({ reports: [report, ...state.reports] })),
+  heatmapData: [],
   setHeatmapData: (data) => set({ heatmapData: data }),
+  isSimulating: false,
+  setIsSimulating: (isSimulating) => set({ isSimulating }),
+  isReporting: false,
+  setIsReporting: (isReporting) => set({ isReporting }),
+  reportLocation: null,
+  setReportLocation: (reportLocation) => set({ reportLocation }),
+  safeRoute: null,
+  setSafeRoute: (safeRoute) => set({ safeRoute }),
+  isAdminMode: false,
+  setIsAdminMode: (isAdminMode) => set({ isAdminMode }),
+  updateReportStatus: (reportId, status) => set((state) => ({
+    reports: state.reports.map((r) => r._id === reportId ? { ...r, status } as Report : r)
+  })),
+  destination: null,
+  setDestination: (destination) => set({ destination }),
+  navigationTargetName: null,
+  setNavigationTargetName: (navigationTargetName) => set({ navigationTargetName }),
+  isNavigating: false,
+  setIsNavigating: (isNavigating) => set({ isNavigating }),
+  availableRoutes: [],
+  setAvailableRoutes: (availableRoutes) => set({ availableRoutes }),
+  isPathCompromised: false,
+  setPathCompromised: (isPathCompromised) => set({ isPathCompromised }),
+  navigationAlert: null,
+  setNavigationAlert: (navigationAlert) => set({ navigationAlert }),
+  isSelectingDestination: false,
+  setIsSelectingDestination: (isSelectingDestination) => set({ isSelectingDestination }),
+  fetchReports: async () => {
+    try {
+      const { data } = await axios.get(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'}/api/reports`);
+      set({ reports: data });
+    } catch (error) {
+      console.error('Failed to fetch reports:', error);
+    }
+  },
 }));
 
 export default useStore;
