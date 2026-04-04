@@ -1,0 +1,71 @@
+﻿# ------------------------------
+# Root dependencies and package managers
+# ------------------------------
+**/node_modules/
+
+# Keep lockfiles tracked for reproducible builds; do not ignore them.
+
+# ------------------------------
+# Environment and secrets
+# ------------------------------
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!.env.*.example
+!**/.env.example
+!**/.env.*.example
+
+# ------------------------------
+# Build outputs and caches
+# ------------------------------
+**/dist/
+**/build/
+**/.next/
+**/.cache/
+**/.turbo/
+**/.vite/
+**/coverage/
+**/*.tsbuildinfo
+
+# ------------------------------
+# Logs and runtime artifacts
+# ------------------------------
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ------------------------------
+# OS and editor files
+# ------------------------------
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*.swo
+
+# ------------------------------
+# Local dev / deployment leftovers
+# ------------------------------
+**/.vercel/
+**/.netlify/
+**/.firebase/
+**/.serverless/
+**/tmp/
+**/temp/# ------------------------------
+# Docker artifacts
+# ------------------------------
+Dockerfile
+docker-compose.yml
+.dockerignore
