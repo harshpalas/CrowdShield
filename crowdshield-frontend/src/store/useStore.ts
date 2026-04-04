@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import axios from 'axios';
 
 interface User {
@@ -84,56 +85,64 @@ interface AppState {
   fetchReports: () => Promise<void>;
 }
 
-export const useStore = create<AppState>((set) => ({
-  user: null,
-  isAuthenticated: false,
-  setUser: (user) => set({ user, isAuthenticated: !!user }),
-  logout: () => set({ user: null, isAuthenticated: false }),
-  updateUser: (userData) => set((state) => ({ 
-    user: state.user ? { ...state.user, ...userData } : null 
-  })),
-  userLocation: null,
-  setUserLocation: (userLocation) => set({ userLocation }),
-  reports: [],
-  setReports: (reports) => set({ reports }),
-  addReport: (report) => set((state) => ({ reports: [report, ...state.reports] })),
-  heatmapData: [],
-  setHeatmapData: (data) => set({ heatmapData: data }),
-  isSimulating: false,
-  setIsSimulating: (isSimulating) => set({ isSimulating }),
-  isReporting: false,
-  setIsReporting: (isReporting) => set({ isReporting }),
-  reportLocation: null,
-  setReportLocation: (reportLocation) => set({ reportLocation }),
-  safeRoute: null,
-  setSafeRoute: (safeRoute) => set({ safeRoute }),
-  isAdminMode: false,
-  setIsAdminMode: (isAdminMode) => set({ isAdminMode }),
-  updateReportStatus: (reportId, status) => set((state) => ({
-    reports: state.reports.map((r) => r._id === reportId ? { ...r, status } as Report : r)
-  })),
-  destination: null,
-  setDestination: (destination) => set({ destination }),
-  navigationTargetName: null,
-  setNavigationTargetName: (navigationTargetName) => set({ navigationTargetName }),
-  isNavigating: false,
-  setIsNavigating: (isNavigating) => set({ isNavigating }),
-  availableRoutes: [],
-  setAvailableRoutes: (availableRoutes) => set({ availableRoutes }),
-  isPathCompromised: false,
-  setPathCompromised: (isPathCompromised) => set({ isPathCompromised }),
-  navigationAlert: null,
-  setNavigationAlert: (navigationAlert) => set({ navigationAlert }),
-  isSelectingDestination: false,
-  setIsSelectingDestination: (isSelectingDestination) => set({ isSelectingDestination }),
-  fetchReports: async () => {
-    try {
-      const { data } = await axios.get(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'}/api/reports`);
-      set({ reports: data });
-    } catch (error) {
-      console.error('Failed to fetch reports:', error);
+export const useStore = create<AppState>()(
+  persist(
+    (set) => ({
+      user: null,
+      isAuthenticated: false,
+      setUser: (user) => set({ user, isAuthenticated: !!user }),
+      logout: () => set({ user: null, isAuthenticated: false }),
+      updateUser: (userData) => set((state) => ({ 
+        user: state.user ? { ...state.user, ...userData } : null 
+      })),
+      userLocation: null,
+      setUserLocation: (userLocation) => set({ userLocation }),
+      reports: [],
+      setReports: (reports) => set({ reports }),
+      addReport: (report) => set((state) => ({ reports: [report, ...state.reports] })),
+      heatmapData: [],
+      setHeatmapData: (data) => set({ heatmapData: data }),
+      isSimulating: false,
+      setIsSimulating: (isSimulating) => set({ isSimulating }),
+      isReporting: false,
+      setIsReporting: (isReporting) => set({ isReporting }),
+      reportLocation: null,
+      setReportLocation: (reportLocation) => set({ reportLocation }),
+      safeRoute: null,
+      setSafeRoute: (safeRoute) => set({ safeRoute }),
+      isAdminMode: false,
+      setIsAdminMode: (isAdminMode) => set({ isAdminMode }),
+      updateReportStatus: (reportId, status) => set((state) => ({
+        reports: state.reports.map((r) => r._id === reportId ? { ...r, status } as Report : r)
+      })),
+      destination: null,
+      setDestination: (destination) => set({ destination }),
+      navigationTargetName: null,
+      setNavigationTargetName: (navigationTargetName) => set({ navigationTargetName }),
+      isNavigating: false,
+      setIsNavigating: (isNavigating) => set({ isNavigating }),
+      availableRoutes: [],
+      setAvailableRoutes: (availableRoutes) => set({ availableRoutes }),
+      isPathCompromised: false,
+      setPathCompromised: (isPathCompromised) => set({ isPathCompromised }),
+      navigationAlert: null,
+      setNavigationAlert: (navigationAlert) => set({ navigationAlert }),
+      isSelectingDestination: false,
+      setIsSelectingDestination: (isSelectingDestination) => set({ isSelectingDestination }),
+      fetchReports: async () => {
+        try {
+          const { data } = await axios.get(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'}/api/reports`);
+          set({ reports: data });
+        } catch (error) {
+          console.error('Failed to fetch reports:', error);
+        }
+      },
+    }),
+    {
+      name: 'crowdshield-storage',
+      partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated }),
     }
-  },
-}));
+  )
+);
 
 export default useStore;

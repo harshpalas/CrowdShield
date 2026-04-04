@@ -165,7 +165,8 @@ const App = () => {
   useGeolocation();
 
   useEffect(() => {
-    if (user) {
+    if (user?.token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${user.token}`;
       fetchReports();
       if (user.role === 'org') {
         setIsAdminMode(true);
@@ -184,8 +185,10 @@ const App = () => {
           toast.success('New Crowd Report Logged', { icon: '📊' });
         }
       });
+      return () => socketService.disconnect();
+    } else {
+      delete axios.defaults.headers.common['Authorization'];
     }
-    return () => socketService.disconnect();
   }, [user]);
 
   if (!user) {
