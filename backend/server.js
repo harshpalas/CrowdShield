@@ -4,17 +4,27 @@ const { Server } = require('socket.io');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const connectDB = require('./config/db');
-const { setupSocket } = require('./services/socketService');
 
 // Routes
 const authRoutes = require('./routes/authRoutes');
 const locationRoutes = require('./routes/locationRoutes');
 const reportsRoutes = require('./routes/reportsRoutes');
+const { simulateUsers } = require('./services/simulationService');
 
 dotenv.config();
-connectDB();
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "*", // Be more specific in production
+    methods: ["GET", "POST"]
+  }
+});
+
+// Middleware
+app.use(cors());
+app.use(express.json());
 
 // Inject io into request
 app.use((req, res, next) => {
@@ -26,12 +36,6 @@ app.use((req, res, next) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/location', locationRoutes);
-
-const PORT = process.env.PORT || 5000;
-
-const server = app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
 
 // Socket.IO middleware (optional: JWT check)
 io.use((socket, next) => {
@@ -68,7 +72,7 @@ const startServer = async () => {
         await connectDB();
         const PORT = process.env.PORT || 5000;
         server.listen(PORT, () => {
-            console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+            console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
         });
     } catch (error) {
         console.error('Server startup error:', error);
