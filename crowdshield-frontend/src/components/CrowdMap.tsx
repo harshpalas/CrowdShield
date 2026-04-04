@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { APIProvider, Map, useMap, AdvancedMarker, Pin } from '@vis.gl/react-google-maps';
 import { useStore } from '../store/useStore';
-import { AlertTriangle, Crosshair, Users, Target } from 'lucide-react';
+import { AlertTriangle, Crosshair, Target, RefreshCw } from 'lucide-react';
 import { calculateDistance, calculateOffsetPoint } from '../utils/geoUtils';
 import NavigationPanel from './NavigationPanel';
 import toast from 'react-hot-toast';
@@ -35,43 +35,29 @@ const RecenterButton = ({ userLocation }: { userLocation: { lat: number, lng: nu
   );
 };
 
-const AnalysisPopup = ({ hotspot, onClose }: { hotspot: any; onClose: () => void }) => (
-  <motion.div
-    initial={{ opacity: 0, scale: 0.9, y: 10 }}
-    animate={{ opacity: 1, scale: 1, y: 0 }}
-    exit={{ opacity: 0, scale: 0.9, y: 10 }}
-    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[120%] z-[60] w-72 glass-card p-6 rounded-[2rem] border border-red-500/30 shadow-[0_0_50px_rgba(239,68,68,0.2)] pointer-events-auto"
-  >
-    <div className="flex justify-between items-start mb-6">
-      <div className="p-3 bg-red-500/10 rounded-2xl border border-red-500/20">
-        <Users className="w-6 h-6 text-red-500" />
-      </div>
-      <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-xl text-white/20 hover:text-white transition-all text-[10px] font-bold">CLOSE</button>
-    </div>
-
-    <div className="space-y-4">
-      <div>
-        <label className="text-[10px] text-white/30 uppercase tracking-[0.2em] font-bold block mb-1">Total Persons</label>
-        <p className="text-3xl font-black text-white leading-none">{hotspot.count} <span className="text-xs text-red-500 uppercase tracking-widest ml-2">Agents</span></p>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div className="p-3 bg-white/5 rounded-2xl border border-white/5">
-          <label className="text-[8px] text-white/20 uppercase font-black block mb-1">Risk Level</label>
-          <span className="text-[10px] font-black text-red-500 uppercase tracking-tighter">{hotspot.risk}</span>
-        </div>
-        <div className="p-3 bg-white/5 rounded-2xl border border-white/5">
-          <label className="text-[8px] text-white/20 uppercase font-black block mb-1">Status</label>
-          <span className="text-[10px] font-black text-white uppercase tracking-tighter">CONGESTED</span>
-        </div>
-      </div>
-
-      <div className="pt-4 border-t border-white/5">
-        <p className="text-[9px] text-white/40 leading-relaxed italic">"Sector-7 cluster flux exceeding safety threshold. Immediate dispersal recommended."</p>
-      </div>
-    </div>
-  </motion.div>
-);
+const RefreshButton = ({ onRefresh }: { onRefresh: () => void }) => {
+    const [isRefreshing, setIsRefreshing] = useState(false);
+  
+    const handleRefresh = async () => {
+      setIsRefreshing(true);
+      await onRefresh();
+      toast.success('Incidents Synced', {
+        icon: '🛰️',
+        style: { background: '#0a0a0c', color: '#fff', border: '1px solid rgba(16, 185, 129, 0.2)' }
+      });
+      setTimeout(() => setIsRefreshing(false), 1000);
+    };
+  
+    return (
+      <button
+        onClick={handleRefresh}
+        className="absolute bottom-52 right-10 z-40 p-4 bg-red-600/20 hover:bg-red-600/40 text-red-400 border border-red-500/20 rounded-2xl backdrop-blur-xl transition-all shadow-2xl group"
+        title="Refresh Incidents"
+      >
+        <RefreshCw className={`w-6 h-6 group-hover:scale-110 transition-transform ${isRefreshing ? 'animate-spin' : ''}`} />
+      </button>
+    );
+  };
 
 const SafeRoute = ({ path, isCompromised }: { path: any[], isCompromised?: boolean }) => {
   const map = useMap();
@@ -150,7 +136,6 @@ const CrowdMap = () => {
   const { 
     reports, 
     userLocation, 
-    hotspots, 
     isReporting, 
     reportLocation, 
     setReportLocation, 
@@ -166,10 +151,11 @@ const CrowdMap = () => {
     setPathCompromised,
     setNavigationAlert,
     isSelectingDestination,
-    setIsSelectingDestination
+    setIsSelectingDestination,
+    fetchReports,
+    user
   } = useStore();
   
-  const [activeHotspot, setActiveHotspot] = useState<any>(null);
   const [activeReport, setActiveReport] = useState<any>(null);
   const [lastProximityAlert, setLastProximityAlert] = useState<number>(0);
   const prevDistancesRef = useRef<Record<string, number>>({});
@@ -178,20 +164,8 @@ const CrowdMap = () => {
 
   useEffect(() => {
     if (userLocation) {
-      // 1. Proximity Alert for static hotspots
-      hotspots.forEach(hotspot => {
-        const distance = calculateDistance(userLocation.lat, userLocation.lng, hotspot.lat, hotspot.lng);
-        if (distance < 50) {
-          const now = Date.now();
-          if (now - lastProximityAlert > 30000) {
-            toast.error("⚠️ DANGER ZONE: Under 50m. Move away immediately!", { duration: 10000, icon: '🚨' });
-            setLastProximityAlert(now);
-          }
-        }
-      });
-
       // 2. Trajectory Alerts for Dangerous Reports
-      reports.filter(r => r.type === 'dangerous' && r.status === 'pending').forEach(report => {
+      reports.filter(r => r.type === 'dangerous' && ['pending', 'monitoring'].includes(r.status)).forEach(report => {
         const reportCoords = { lat: report.location.coordinates[1], lng: report.location.coordinates[0] };
         const distance = calculateDistance(userLocation.lat, userLocation.lng, reportCoords.lat, reportCoords.lng);
         const prevDistance = prevDistancesRef.current[report._id];
@@ -211,7 +185,7 @@ const CrowdMap = () => {
         prevDistancesRef.current[report._id] = distance;
       });
     }
-  }, [userLocation, hotspots, reports, lastProximityAlert]);
+  }, [userLocation, reports, lastProximityAlert]);
 
   // Handle Intelligent Routing
   useEffect(() => {
@@ -243,7 +217,7 @@ const CrowdMap = () => {
     };
 
     const analyzeResult = (result: google.maps.DirectionsResult) => {
-        const dangerZones = reports.filter(r => r.type === 'dangerous' && r.status === 'pending');
+        const dangerZones = reports.filter(r => r.type === 'dangerous' && ['pending', 'monitoring'].includes(r.status));
         return result.routes.map(route => {
             let dangerScore = 0;
             let totalDistance = 0;
@@ -374,12 +348,6 @@ const CrowdMap = () => {
         <p className="text-[10px] text-white/20 uppercase tracking-[0.4em] font-bold">Initializing Surveillance Matrix</p>
       </div>
 
-      <AnimatePresence>
-        {activeHotspot && (
-          <AnalysisPopup hotspot={activeHotspot} onClose={() => setActiveHotspot(null)} />
-        )}
-      </AnimatePresence>
-
       {isInvalidKey ? (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center p-12 text-center bg-[#08080a]/95 backdrop-blur-xl">
           <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mb-8 border border-red-500/20">
@@ -391,7 +359,7 @@ const CrowdMap = () => {
           </p>
         </div>
       ) : (
-        <APIProvider apiKey={apiKey} libraries={['visualization']}>
+        <APIProvider apiKey={apiKey}>
           <Map
             defaultCenter={campusCenter}
             defaultZoom={16}
@@ -417,12 +385,12 @@ const CrowdMap = () => {
                     setSafeRoute([userLocation, target]);
                 }
               } else {
-                setActiveHotspot(null);
                 setActiveReport(null);
               }
             }}
           >
             <RecenterButton userLocation={userLocation} />
+            {user?.role === 'org' && <RefreshButton onRefresh={fetchReports} />}
             {!isAdminMode && <SafeRoute path={safeRoute || []} isCompromised={isPathCompromised} />}
             <NavigationPanel />
             
@@ -442,39 +410,23 @@ const CrowdMap = () => {
                </AdvancedMarker>
             )}
             
-            {hotspots.map((h) => (
-              <AdvancedMarker 
-                key={h.id}
-                position={{ lat: h.lat, lng: h.lng }}
-                onClick={() => setActiveHotspot(h)}
-              >
-                <div className="relative w-16 h-16 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center cursor-pointer group">
-                  {/* Outer Red Circle */}
-                  <div className="absolute inset-0 rounded-full border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)] bg-red-500/10 group-hover:bg-red-500/20 transition-all animate-pulse" />
-                  
-                  {/* 5 Dots Inside (Dice pattern) */}
-                  <div className="relative w-8 h-8">
-                     <div className="absolute top-1 left-1 w-1.5 h-1.5 bg-red-500 rounded-full shadow-[0_0_5px_#ef4444]" />
-                     <div className="absolute top-1 right-1 w-1.5 h-1.5 bg-red-500 rounded-full shadow-[0_0_5px_#ef4444]" />
-                     <div className="absolute bottom-1 left-1 w-1.5 h-1.5 bg-red-500 rounded-full shadow-[0_0_5px_#ef4444]" />
-                     <div className="absolute bottom-1 right-1 w-1.5 h-1.5 bg-red-500 rounded-full shadow-[0_0_5px_#ef4444]" />
-                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 bg-red-500 rounded-full shadow-[0_0_10px_#ef4444]" />
-                  </div>
-                </div>
-              </AdvancedMarker>
-            ))}
-
             {userLocation && (
               <AdvancedMarker position={userLocation}>
                 <div className="user-location-dot" />
               </AdvancedMarker>
             )}
 
-            {reports.map((report) => {
-               const isDangerous = report.type === 'dangerous';
-               const isResolved = report.status === 'resolved' || report.status === 'dismissed';
-               
-               if (isResolved) return null;
+              {reports.map((report) => {
+                const isDangerous = report.type === 'dangerous';
+                
+                // Visibility Logic
+                if (user?.role === 'citizen') {
+                    if (report.status === 'cleared') return null;
+                } else if (user?.role === 'org') {
+                    const isPending = report.status === 'pending';
+                    const isMyMonitoring = report.status === 'monitoring' && report.org_id === user.userId;
+                    if (!isPending && !isMyMonitoring) return null;
+                }
                
                return (
                 <AdvancedMarker
@@ -499,9 +451,9 @@ const CrowdMap = () => {
                              animate={{ opacity: 1, y: 0, scale: 1 }}
                              className="absolute bottom-full left-1/2 -translate-x-1/2 mb-6 w-64 glass-card rounded-3xl border border-red-500/30 overflow-hidden shadow-3xl pointer-events-auto"
                            >
-                              {report.imageUrl && (
+                              {report.image_url && (
                                 <div className="h-32 w-full overflow-hidden">
-                                   <img src={report.imageUrl} className="w-full h-full object-cover" />
+                                   <img src={report.image_url} className="w-full h-full object-cover" />
                                 </div>
                               )}
                               <div className="p-4">

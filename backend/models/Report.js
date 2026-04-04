@@ -17,7 +17,7 @@ const reportSchema = new mongoose.Schema({
             required: true,
         },
     },
-    imageUrl: {
+    image_url: {
         type: String,
         required: false,
     },
@@ -32,11 +32,23 @@ const reportSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['pending', 'investigating', 'resolved', 'dismissed'],
+        enum: ['pending', 'monitoring', 'cleared'],
         default: 'pending',
     },
+    ctz_id: {
+        type: String, // e.g. CTZ01
+        required: true,
+    },
+    org_id: {
+        type: String, // e.g. ORG01 when assigned
+        default: null,
+    },
+    is_verified: {
+        type: Boolean,
+        default: null,
+    },
 }, {
-    timestamps: true,
+    timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
 });
 
 reportSchema.index({ location: '2dsphere' });

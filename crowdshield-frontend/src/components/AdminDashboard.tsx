@@ -2,29 +2,37 @@ import { useState } from 'react';
 import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
 import { useStore } from '../store/useStore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertCircle, CheckCircle2, Shield, User, Camera, Calendar, X } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Shield, User, Camera, X } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
 const AdminDashboard = () => {
-  const { reports, user, updateReportStatus, setIsAdminMode } = useStore();
+  const { reports, user, setIsAdminMode, updateUser } = useStore();
   const [selectedReport, setSelectedReport] = useState<any>(null);
   const campusCenter = { lat: 23.1777, lng: 80.0250 };
 
-  const handleStatusUpdate = async (reportId: string, newStatus: 'pending' | 'investigating' | 'resolved' | 'dismissed') => {
+  const handleUpdate = async (reportId: string, updates: { status?: string, is_verified?: boolean }) => {
     try {
       await axios.patch(`http://localhost:5000/api/reports/${reportId}/status`, 
-        { status: newStatus },
+        updates,
         { headers: { Authorization: `Bearer ${user?.token}` }}
       );
-      updateReportStatus(reportId, newStatus);
-      toast.success(`INCIDENT SEALED: Sector cleared.`, {
-        icon: '✅',
-        style: { background: '#064e3b', color: '#fff', border: '1px solid rgba(16, 185, 129, 0.2)' }
-      });
+      
+      if (updates.is_verified === true) toast.success('Report Verified: Citizen Rewarded');
+      if (updates.is_verified === false) toast.error('Report Flagged: False alert logged');
+      
+      if (updates.status === 'monitoring') {
+        toast.success('Tactical Response Initiated (+5 Coins)');
+        updateUser({ coins: (user?.coins || 0) + 5 });
+      }
+      if (updates.status === 'cleared') {
+        toast.success('Mission Accomplished: Sector Clear (+10 Coins)');
+        updateUser({ coins: (user?.coins || 0) + 10 });
+      }
+      
       setSelectedReport(null);
     } catch (error) {
-      toast.error('Command Link Failed: Could not update status');
+      toast.error('Command Link Failed: Could not update incident');
     }
   };
 
@@ -79,11 +87,11 @@ const AdminDashboard = () => {
                 onClick={() => setSelectedReport(report)}
               >
                 <div className={`p-1.5 rounded-full border-4 shadow-2xl transform hover:scale-125 transition-all cursor-pointer ${
-                  report.status === 'resolved' 
+                  report.status === 'cleared' 
                     ? 'bg-green-500/20 border-green-500/40 shadow-green-500/10' 
                     : 'bg-red-500/30 border-red-600 shadow-red-600/30 animate-pulse'
                 }`}>
-                  <div className={`w-3.5 h-3.5 rounded-full ${report.status === 'resolved' ? 'bg-green-500' : 'bg-red-600 shadow-[0_0_15px_#ef4444]'}`} />
+                  <div className={`w-3.5 h-3.5 rounded-full ${report.status === 'cleared' ? 'bg-green-500' : 'bg-red-600 shadow-[0_0_15px_#ef4444]'}`} />
                 </div>
               </AdvancedMarker>
             ))}
@@ -97,13 +105,13 @@ const AdminDashboard = () => {
               initial={{ opacity: 0, x: 100, scale: 0.98 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
               exit={{ opacity: 0, x: 200, scale: 0.95 }}
-              className="absolute top-10 right-10 bottom-10 w-[420px] glass-card rounded-[3.5rem] border border-white/10 shadow-[0_0_120px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col z-[110]"
+              className="absolute top-10 right-10 bottom-10 w-[440px] glass-card rounded-[3.5rem] border border-white/10 shadow-[0_0_120px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col z-[110]"
             >
                {/* Media Intel Banner */}
-               <div className="h-72 bg-black/40 relative group overflow-hidden">
-                  {selectedReport.imageUrl ? (
+               <div className="h-64 bg-black/40 relative group overflow-hidden">
+                  {selectedReport.image_url ? (
                     <img 
-                      src={selectedReport.imageUrl} 
+                      src={selectedReport.image_url} 
                       alt="Intelligence" 
                       className="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-110 transition-all duration-1000"
                     />
@@ -115,7 +123,7 @@ const AdminDashboard = () => {
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0c] via-transparent to-transparent" />
                   <div className="absolute top-8 left-8">
-                     <div className={`px-4 py-1.5 rounded-full border text-[9px] font-black uppercase tracking-widest backdrop-blur-md ${selectedReport.status === 'resolved' ? 'bg-green-500/20 border-green-500/40 text-green-400' : 'bg-red-500/20 border-red-500/40 text-red-400'}`}>
+                     <div className={`px-4 py-1.5 rounded-full border text-[9px] font-black uppercase tracking-widest backdrop-blur-md ${selectedReport.status === 'cleared' ? 'bg-green-500/20 border-green-500/40 text-green-400' : 'bg-red-500/20 border-red-500/40 text-red-400'}`}>
                         {selectedReport.status} incident
                      </div>
                   </div>
@@ -127,26 +135,47 @@ const AdminDashboard = () => {
                   </button>
                </div>
 
-               <div className="p-10 space-y-8 flex-1 overflow-y-auto custom-scrollbar">
-                  <div className="space-y-2">
-                     <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border ${
-                        selectedReport.status === 'resolved' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'
-                     }`}>
-                        {selectedReport.status} incident
-                     </span>
-                     <h3 className="text-xl font-black text-white leading-tight uppercase tracking-tight pt-2">Intelligence Dossier</h3>
+               <div className="p-8 space-y-6 flex-1 overflow-y-auto custom-scrollbar">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                       <h3 className="text-xl font-black text-white leading-tight uppercase tracking-tight">Intelligence Dossier</h3>
+                       <p className="text-[9px] text-white/30 font-bold uppercase tracking-widest">Incident ID: {selectedReport._id.slice(-6)}</p>
+                    </div>
+                    {selectedReport.is_verified !== null && (
+                      <div className={`px-3 py-1 rounded-full border text-[8px] font-black uppercase tracking-widest ${selectedReport.is_verified ? 'bg-green-500/10 border-green-500/30 text-green-500' : 'bg-red-500/10 border-red-500/30 text-red-500'}`}>
+                        {selectedReport.is_verified ? 'Verified Authentic' : 'Flagged False'}
+                      </div>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                      <div className="p-4 bg-white/5 rounded-3xl border border-white/5">
                         <User className="w-4 h-4 text-blue-500 mb-3" />
-                        <label className="text-[8px] text-white/20 uppercase font-black block mb-1">Source Agent</label>
-                        <p className="text-[10px] text-white font-mono truncate">{selectedReport.user}</p>
+                        <label className="text-[8px] text-white/20 uppercase font-black block mb-1">Reporter ID</label>
+                        <p className="text-[10px] text-white font-mono truncate">{selectedReport.user?.userId || selectedReport.ctz_id}</p>
                      </div>
                      <div className="p-4 bg-white/5 rounded-3xl border border-white/5">
-                        <Calendar className="w-4 h-4 text-purple-500 mb-3" />
-                        <label className="text-[8px] text-white/20 uppercase font-black block mb-1">Intercepted At</label>
-                        <p className="text-[10px] text-white font-mono">{new Date(selectedReport.createdAt).toLocaleTimeString()}</p>
+                        <Shield className="w-4 h-4 text-green-500 mb-3" />
+                        <label className="text-[8px] text-white/20 uppercase font-black block mb-1">Confidence Score</label>
+                        <p className="text-[10px] text-white font-mono font-bold tracking-widest">
+                          {selectedReport.user?.confidenceScore !== undefined ? `${selectedReport.user.confidenceScore.toFixed(1)}%` : '---'}
+                        </p>
+                     </div>
+                  </div>
+
+                  <div className="p-4 bg-white/5 rounded-3xl border border-white/5">
+                     <div className="flex items-center justify-between">
+                        <div>
+                           <label className="text-[8px] text-white/20 uppercase font-black block mb-1">Verification Indicator</label>
+                           <p className="text-[10px] text-white font-bold uppercase tracking-wider">
+                              {selectedReport.is_verified === null ? 'Pending Verification' : (selectedReport.is_verified ? 'Verified ✅' : 'False ❌')}
+                           </p>
+                        </div>
+                        {selectedReport.is_verified !== null && (
+                           <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${selectedReport.is_verified ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`}>
+                              {selectedReport.is_verified ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                           </div>
+                        )}
                      </div>
                   </div>
 
@@ -160,17 +189,59 @@ const AdminDashboard = () => {
                      </p>
                   </div>
 
-                  {selectedReport.status !== 'resolved' && (
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => handleStatusUpdate(selectedReport._id, 'resolved')}
-                      className="w-full py-6 bg-white text-black rounded-[2rem] flex items-center justify-center gap-4 group shadow-2xl hover:bg-green-500 hover:text-white transition-all mt-auto"
-                    >
-                       <CheckCircle2 className="w-5 h-5" />
-                       <span className="text-xs font-black uppercase tracking-[0.2em]">Seal Incident & Clear Paths</span>
-                    </motion.button>
-                  )}
+                  {/* Operational Controls */}
+                  <div className="space-y-4 pt-4 border-t border-white/5">
+                    {selectedReport.is_verified === null && (
+                      <div className="grid grid-cols-2 gap-3">
+                        <button 
+                          onClick={() => handleUpdate(selectedReport._id, { is_verified: true })}
+                          className="py-4 bg-green-600/10 hover:bg-green-600 text-green-500 hover:text-white rounded-2xl border border-green-500/20 text-[10px] font-black uppercase tracking-widest transition-all"
+                        >
+                          Verify as Genuine
+                        </button>
+                        <button 
+                          onClick={() => handleUpdate(selectedReport._id, { is_verified: false })}
+                          className="py-4 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white rounded-2xl border border-red-500/20 text-[10px] font-black uppercase tracking-widest transition-all"
+                        >
+                          Mark as False
+                        </button>
+                      </div>
+                    )}
+
+                    {selectedReport.status === 'pending' && (
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => handleUpdate(selectedReport._id, { status: 'monitoring' })}
+                        className="w-full py-5 bg-blue-600 text-white rounded-2xl flex items-center justify-center gap-4 group shadow-xl hover:bg-blue-500 transition-all font-black text-[10px] uppercase tracking-widest"
+                      >
+                         <Shield className="w-4 h-4" />
+                         Respond to Incident (+5 Coins)
+                      </motion.button>
+                    )}
+
+                    {selectedReport.status === 'monitoring' && (
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => {
+                          if (selectedReport.org_id === (user?.userId || user?._id)) {
+                             handleUpdate(selectedReport._id, { status: 'cleared' });
+                          } else {
+                             toast.error('Tactical Access Denied: Assignment Mismatch');
+                          }
+                        }}
+                        className={`w-full py-5 rounded-2xl flex items-center justify-center gap-4 group shadow-xl transition-all font-black text-[10px] uppercase tracking-widest ${
+                          selectedReport.org_id === (user?.userId || user?._id) 
+                            ? 'bg-white text-black hover:bg-green-500 hover:text-white' 
+                            : 'bg-white/5 text-white/20 cursor-not-allowed border border-white/5'
+                        }`}
+                      >
+                         <CheckCircle2 className="w-4 h-4" />
+                         {selectedReport.org_id === (user?.userId || user?._id) ? 'Mark as Cleared (+10 Coins)' : 'Assigned to Another Unit'}
+                      </motion.button>
+                    )}
+                  </div>
                </div>
             </motion.div>
           )}

@@ -4,25 +4,25 @@ const { Server } = require('socket.io');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const connectDB = require('./config/db');
-const { simulateUsers } = require('./services/simulationService');
 
 // Routes
 const authRoutes = require('./routes/authRoutes');
 const locationRoutes = require('./routes/locationRoutes');
 const reportsRoutes = require('./routes/reportsRoutes');
+const { simulateUsers } = require('./services/simulationService');
 
 dotenv.config();
-connectDB();
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-    cors: {
-        origin: '*', // Allow all origins for the hackathon
-        methods: ['GET', 'POST'],
-    },
+  cors: {
+    origin: "*", // Be more specific in production
+    methods: ["GET", "POST"]
+  }
 });
 
+// Middleware
 app.use(cors());
 app.use(express.json());
 
@@ -34,8 +34,8 @@ app.use((req, res, next) => {
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/location', locationRoutes);
 app.use('/api/reports', reportsRoutes);
+app.use('/api/location', locationRoutes);
 
 // Socket.IO middleware (optional: JWT check)
 io.use((socket, next) => {
@@ -67,7 +67,17 @@ app.get('/api/simulate/start', (req, res) => {
     res.json({ message: 'Simulation started' });
 });
 
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
-    console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
-});
+const startServer = async () => {
+    try {
+        await connectDB();
+        const PORT = process.env.PORT || 5000;
+        server.listen(PORT, () => {
+            console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+        });
+    } catch (error) {
+        console.error('Server startup error:', error);
+        process.exit(1);
+    }
+};
+
+startServer();
