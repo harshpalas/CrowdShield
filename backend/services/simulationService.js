@@ -46,7 +46,7 @@ const simulateUsers = async (io, userCount = 100, center = { lat: 23.1777, lng: 
                 created_at: new Date().toISOString(),
                 image_url: 'https://images.unsplash.com/photo-1541888941259-79273a460da1?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80',
                 ctz_id: 'SYSTEM',
-                ord_id: 'null',
+                org_id: 'null',
             };
             io.emit('newReportMarker', mockAlert);
             alertSent = true;

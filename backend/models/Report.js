@@ -39,8 +39,12 @@ const reportSchema = new mongoose.Schema({
         type: String, // e.g. CTZ01
         required: true,
     },
-    ord_id: {
+    org_id: {
         type: String, // e.g. ORG01 when assigned
+        default: null,
+    },
+    is_verified: {
+        type: Boolean,
         default: null,
     },
 }, {

@@ -424,7 +424,7 @@ const CrowdMap = () => {
                     if (report.status === 'cleared') return null;
                 } else if (user?.role === 'org') {
                     const isPending = report.status === 'pending';
-                    const isMyMonitoring = report.status === 'monitoring' && report.ord_id === user.userId;
+                    const isMyMonitoring = report.status === 'monitoring' && report.org_id === user.userId;
                     if (!isPending && !isMyMonitoring) return null;
                 }
                

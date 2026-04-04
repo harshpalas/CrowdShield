@@ -9,6 +9,7 @@ import { Bell, LogOut, User as UserIcon, Map as MapIcon, Play, Pause, Camera, Se
 import { motion, AnimatePresence } from 'framer-motion';
 import ReportModal from './components/ReportModal';
 import ProfileSettings from './components/ProfileSettings';
+import AdminDashboard from './components/AdminDashboard';
 import { useGeolocation } from './hooks/useGeolocation';
 
 const SidebarItem = ({ icon: Icon, label, active = false, onClick }: { icon: any, label: string, active?: boolean, onClick?: () => void }) => (
@@ -160,7 +161,7 @@ const Header = () => {
 }
 
 const App = () => {
-  const { user, fetchReports, setIsAdminMode } = useStore();
+  const { user, fetchReports, setIsAdminMode, isAdminMode } = useStore();
   useGeolocation();
 
   useEffect(() => {
@@ -201,6 +202,9 @@ const App = () => {
       <SidePanel />
       <AnimatePresence>
         <ReportModal />
+      </AnimatePresence>
+      <AnimatePresence>
+        {isAdminMode && <AdminDashboard />}
       </AnimatePresence>
 
       <main className="flex-1 relative flex flex-col h-full overflow-hidden">

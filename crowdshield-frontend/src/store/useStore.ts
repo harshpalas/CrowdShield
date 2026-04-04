@@ -32,7 +32,7 @@ interface Report {
   _id: string;
   user: string; // ObjectId
   ctz_id: string; // sequential ID
-  ord_id: string | null; // sequential ID
+  org_id: string | null; // sequential ID
   location: {
     coordinates: [number, number];
   };
