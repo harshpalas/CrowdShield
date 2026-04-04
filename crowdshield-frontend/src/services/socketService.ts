@@ -29,6 +29,8 @@ class SocketService {
     this.socket.on('disconnect', () => {
       console.log('Disconnected from socket server');
     });
+
+    return this.socket;
   }
 
   disconnect() {

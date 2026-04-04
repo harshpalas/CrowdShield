@@ -19,15 +19,20 @@ const reportSchema = new mongoose.Schema({
     },
     imageUrl: {
         type: String,
-        required: true,
+        required: false,
     },
     description: {
         type: String,
         required: true,
     },
+    type: {
+        type: String,
+        enum: ['normal', 'dangerous'],
+        default: 'normal',
+    },
     status: {
         type: String,
-        enum: ['pending', 'approved'],
+        enum: ['pending', 'investigating', 'resolved', 'dismissed'],
         default: 'pending',
     },
 }, {

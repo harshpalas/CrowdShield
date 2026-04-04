@@ -26,6 +26,12 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.json());
 
+// Inject io into request
+app.use((req, res, next) => {
+    req.io = io;
+    next();
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/location', locationRoutes);

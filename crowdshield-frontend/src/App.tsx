@@ -5,8 +5,10 @@ import Auth from './pages/Auth';
 import { socketService } from './services/socketService';
 import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
-import { Shield, Map as MapIcon, Users, AlertTriangle, Play, Pause, Camera, Settings, Bell, LogOut, User as UserIcon } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Bell, LogOut, User as UserIcon, Map as MapIcon, Users, AlertTriangle, Play, Pause, Camera, Settings, Binary, Shield, Compass } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import AdminDashboard from './components/AdminDashboard';
+import ReportModal from './components/ReportModal';
 import { useGeolocation } from './hooks/useGeolocation';
 
 const SidebarItem = ({ icon: Icon, label, active = false, onClick }: { icon: any, label: string, active?: boolean, onClick?: () => void }) => (
@@ -21,7 +23,7 @@ const SidebarItem = ({ icon: Icon, label, active = false, onClick }: { icon: any
 );
 
 const SidePanel = () => {
-  const { isSimulating, setIsSimulating, reports, setUser } = useStore();
+  const { isSimulating, setIsSimulating, reports, setUser, isReporting, setIsReporting, user, isAdminMode, setIsAdminMode, isNavigating, setIsNavigating } = useStore();
 
   const handleStartSimulation = async () => {
     try {
@@ -51,9 +53,32 @@ const SidePanel = () => {
       </div>
 
       <nav className="flex flex-col gap-1">
-        <SidebarItem icon={MapIcon} label="Live Heatmap" active />
+        <SidebarItem icon={MapIcon} label="Live Heatmap" active={!isAdminMode} onClick={() => setIsAdminMode(false)} />
         <SidebarItem icon={Users} label="Family Network" />
         <SidebarItem icon={AlertTriangle} label="Emergency Hub" />
+        
+        {user?.role === 'admin' && (
+          <SidebarItem 
+            icon={Binary} 
+            label="Command Center" 
+            active={isAdminMode} 
+            onClick={() => setIsAdminMode(true)} 
+          />
+        )}
+
+        <SidebarItem 
+          icon={Compass} 
+          label="Safety Navigator" 
+          active={isNavigating} 
+          onClick={() => setIsNavigating(!isNavigating)} 
+        />
+
+        <SidebarItem 
+          icon={Camera} 
+          label={isReporting ? "Cancel Report" : "Report Incident"} 
+          active={isReporting}
+          onClick={() => setIsReporting(!isReporting)}
+        />
         <SidebarItem icon={Settings} label="Sector Config" />
       </nav>
 
@@ -72,34 +97,40 @@ const SidePanel = () => {
       </div>
 
       <div className="mt-8 flex-1 overflow-hidden flex flex-col">
-        <div className="flex items-center justify-between mb-4">
-          <label className="text-[10px] text-white/20 uppercase tracking-[0.3em] font-bold">Live Matrix Feed</label>
-          <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping"></div>
-        </div>
-        <div className="flex flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar flex-1">
-          {reports.length === 0 ? (
-            <div className="p-8 border border-white/5 rounded-3xl text-center glass">
-              <p className="text-[10px] text-white/20 italic uppercase tracking-widest font-bold">Awaiting Data...</p>
+        {isAdminMode ? (
+          <AdminDashboard />
+        ) : (
+          <div className="flex flex-col h-full overflow-hidden">
+            <div className="flex items-center justify-between mb-4">
+              <label className="text-[10px] text-white/20 uppercase tracking-[0.3em] font-bold">Live Matrix Feed</label>
+              <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping"></div>
             </div>
-          ) : (
-            reports.map((report) => (
-              <motion.div 
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                key={report._id} 
-                className="p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-red-500/30 transition-all cursor-pointer group"
-              >
-                <p className="text-xs text-white/70 leading-relaxed mb-3 group-hover:text-white transition-colors">{report.description}</p>
-                <div className="flex items-center justify-between">
-                  <span className="text-[9px] text-white/20 font-mono tracking-tighter uppercase">{new Date(report.createdAt).toLocaleTimeString()} · SEC-7</span>
-                  <div className="p-1.5 bg-red-500/10 rounded-lg group-hover:bg-red-500/20 transition-all">
-                    <Camera className="w-3 h-3 text-red-500/50 group-hover:text-red-500 transition-colors" />
-                  </div>
+            <div className="flex flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar flex-1">
+              {reports.length === 0 ? (
+                <div className="p-8 border border-white/5 rounded-3xl text-center glass">
+                  <p className="text-[10px] text-white/20 italic uppercase tracking-widest font-bold">Awaiting Data...</p>
                 </div>
-              </motion.div>
-            ))
-          )}
-        </div>
+              ) : (
+                reports.map((report) => (
+                  <motion.div 
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    key={report._id} 
+                    className="p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-red-500/30 transition-all cursor-pointer group"
+                  >
+                    <p className="text-xs text-white/70 leading-relaxed mb-3 group-hover:text-white transition-colors">{report.description}</p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[9px] text-white/20 font-mono tracking-tighter uppercase">{new Date(report.createdAt).toLocaleTimeString()} · SEC-7</span>
+                      <div className="p-1.5 bg-red-500/10 rounded-lg group-hover:bg-red-500/20 transition-all">
+                        <Camera className="w-3 h-3 text-red-500/50 group-hover:text-red-500 transition-colors" />
+                      </div>
+                    </div>
+                  </motion.div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="mt-4 pt-4 border-t border-white/5">
@@ -157,7 +188,19 @@ const App = () => {
 
   useEffect(() => {
     if (user) {
-      socketService.connect();
+      const socket = socketService.connect();
+      
+      socket.on('newReport', (report) => {
+        if (report.type === 'dangerous') {
+          toast.error(`CRITICAL: Dangerous Crowd Reported at [${report.location.coordinates[1].toFixed(4)}, ${report.location.coordinates[0].toFixed(4)}]`, {
+            duration: 8000,
+            icon: '🚨',
+            style: { border: '1px solid #ef4444', background: '#7f1d1d', color: '#fff' }
+          });
+        } else {
+          toast.success('New Crowd Report Logged', { icon: '📊' });
+        }
+      });
     }
     return () => socketService.disconnect();
   }, [user]);
@@ -174,6 +217,9 @@ const App = () => {
   return (
     <div className="flex h-screen bg-[#08080a] text-white overflow-hidden page-transition selection:bg-red-500/30 font-sans">
       <SidePanel />
+      <AnimatePresence>
+        <ReportModal />
+      </AnimatePresence>
 
       <main className="flex-1 relative flex flex-col h-full overflow-hidden">
         <Toaster 
@@ -212,17 +258,6 @@ const App = () => {
              <div className="flex flex-col gap-2 items-center group">
                 <div className="w-12 h-1.5 bg-green-500/40 rounded-full group-hover:scale-110 transition-transform"></div>
                 <span className="text-[10px] text-white/40 uppercase font-black mt-1">Optimized</span>
-             </div>
-          </div>
-
-          {/* Floating Sensor Controls */}
-          <div className="absolute top-12 right-10 z-30 flex flex-col gap-4">
-             <div className="glass p-5 rounded-[2.5rem] flex flex-col gap-8 items-center border border-white/5 shadow-2xl backdrop-blur-3xl">
-                <button className="p-4 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-2xl transition-all shadow-lg"><MapIcon className="w-6 h-6" /></button>
-                <button className="p-4 hover:bg-white/5 text-white/20 hover:text-white rounded-2xl transition-all"><Users className="w-6 h-6" /></button>
-                <button className="p-4 hover:bg-white/5 text-white/20 hover:text-white rounded-2xl transition-all"><AlertTriangle className="w-6 h-6" /></button>
-                <div className="w-10 h-[1px] bg-white/10"></div>
-                <button className="p-4 hover:bg-white/5 text-white/20 hover:text-white rounded-2xl transition-all"><Settings className="w-6 h-6" /></button>
              </div>
           </div>
         </div>
