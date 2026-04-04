@@ -4,6 +4,6 @@ const { protect } = require('../middleware/authMiddleware');
 const router = express.Router();
 
 router.post('/update', protect, updateLocation);
-router.get('/heatmap', getHeatmapData);
+// router.get('/heatmap', getHeatmapData); // Disabled as requested
 
 module.exports = router;

@@ -11,7 +11,7 @@ const AdminDashboard = () => {
   const [selectedReport, setSelectedReport] = useState<any>(null);
   const campusCenter = { lat: 23.1777, lng: 80.0250 };
 
-  const handleStatusUpdate = async (reportId: string, newStatus: 'pending' | 'investigating' | 'resolved' | 'dismissed') => {
+  const handleStatusUpdate = async (reportId: string, newStatus: 'pending' | 'monitoring' | 'cleared') => {
     try {
       await axios.patch(`http://localhost:5000/api/reports/${reportId}/status`, 
         { status: newStatus },
@@ -79,11 +79,11 @@ const AdminDashboard = () => {
                 onClick={() => setSelectedReport(report)}
               >
                 <div className={`p-1.5 rounded-full border-4 shadow-2xl transform hover:scale-125 transition-all cursor-pointer ${
-                  report.status === 'resolved' 
+                  report.status === 'cleared' 
                     ? 'bg-green-500/20 border-green-500/40 shadow-green-500/10' 
                     : 'bg-red-500/30 border-red-600 shadow-red-600/30 animate-pulse'
                 }`}>
-                  <div className={`w-3.5 h-3.5 rounded-full ${report.status === 'resolved' ? 'bg-green-500' : 'bg-red-600 shadow-[0_0_15px_#ef4444]'}`} />
+                  <div className={`w-3.5 h-3.5 rounded-full ${report.status === 'cleared' ? 'bg-green-500' : 'bg-red-600 shadow-[0_0_15px_#ef4444]'}`} />
                 </div>
               </AdvancedMarker>
             ))}
@@ -101,9 +101,9 @@ const AdminDashboard = () => {
             >
                {/* Media Intel Banner */}
                <div className="h-72 bg-black/40 relative group overflow-hidden">
-                  {selectedReport.imageUrl ? (
+                  {selectedReport.image_url ? (
                     <img 
-                      src={selectedReport.imageUrl} 
+                      src={selectedReport.image_url} 
                       alt="Intelligence" 
                       className="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-110 transition-all duration-1000"
                     />
@@ -115,7 +115,7 @@ const AdminDashboard = () => {
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0c] via-transparent to-transparent" />
                   <div className="absolute top-8 left-8">
-                     <div className={`px-4 py-1.5 rounded-full border text-[9px] font-black uppercase tracking-widest backdrop-blur-md ${selectedReport.status === 'resolved' ? 'bg-green-500/20 border-green-500/40 text-green-400' : 'bg-red-500/20 border-red-500/40 text-red-400'}`}>
+                     <div className={`px-4 py-1.5 rounded-full border text-[9px] font-black uppercase tracking-widest backdrop-blur-md ${selectedReport.status === 'cleared' ? 'bg-green-500/20 border-green-500/40 text-green-400' : 'bg-red-500/20 border-red-500/40 text-red-400'}`}>
                         {selectedReport.status} incident
                      </div>
                   </div>
@@ -130,7 +130,7 @@ const AdminDashboard = () => {
                <div className="p-10 space-y-8 flex-1 overflow-y-auto custom-scrollbar">
                   <div className="space-y-2">
                      <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border ${
-                        selectedReport.status === 'resolved' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'
+                        selectedReport.status === 'cleared' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'
                      }`}>
                         {selectedReport.status} incident
                      </span>
@@ -141,12 +141,12 @@ const AdminDashboard = () => {
                      <div className="p-4 bg-white/5 rounded-3xl border border-white/5">
                         <User className="w-4 h-4 text-blue-500 mb-3" />
                         <label className="text-[8px] text-white/20 uppercase font-black block mb-1">Source Agent</label>
-                        <p className="text-[10px] text-white font-mono truncate">{selectedReport.user}</p>
+                        <p className="text-[10px] text-white font-mono truncate">{selectedReport.ctz_id}</p>
                      </div>
                      <div className="p-4 bg-white/5 rounded-3xl border border-white/5">
                         <Calendar className="w-4 h-4 text-purple-500 mb-3" />
                         <label className="text-[8px] text-white/20 uppercase font-black block mb-1">Intercepted At</label>
-                        <p className="text-[10px] text-white font-mono">{new Date(selectedReport.createdAt).toLocaleTimeString()}</p>
+                        <p className="text-[10px] text-white font-mono">{new Date(selectedReport.created_at).toLocaleTimeString()}</p>
                      </div>
                   </div>
 
@@ -160,11 +160,23 @@ const AdminDashboard = () => {
                      </p>
                   </div>
 
-                  {selectedReport.status !== 'resolved' && (
+                  {selectedReport.status === 'pending' && (
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={() => handleStatusUpdate(selectedReport._id, 'resolved')}
+                      onClick={() => handleStatusUpdate(selectedReport._id, 'monitoring')}
+                      className="w-full py-6 bg-blue-600 text-white rounded-[2rem] flex items-center justify-center gap-4 group shadow-2xl hover:bg-blue-500 transition-all mt-auto"
+                    >
+                       <Shield className="w-5 h-5" />
+                       <span className="text-xs font-black uppercase tracking-[0.2em]">Start Tactical Monitoring</span>
+                    </motion.button>
+                  )}
+
+                  {selectedReport.status === 'monitoring' && (
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => handleStatusUpdate(selectedReport._id, 'cleared')}
                       className="w-full py-6 bg-white text-black rounded-[2rem] flex items-center justify-center gap-4 group shadow-2xl hover:bg-green-500 hover:text-white transition-all mt-auto"
                     >
                        <CheckCircle2 className="w-5 h-5" />

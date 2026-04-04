@@ -1,5 +1,3 @@
-const CrowdData = require('../models/CrowdData');
-
 const DANGER_ZONE = { lat: 23.176688, lng: 80.025584 };
 
 const simulateUsers = async (io, userCount = 100, center = { lat: 23.1777, lng: 80.0250 }) => {
@@ -36,12 +34,8 @@ const simulateUsers = async (io, userCount = 100, center = { lat: 23.1777, lng: 
             };
         });
 
-        const heatmapData = points.map(p => ({
-            location: { type: 'Point', coordinates: [p.lng, p.lat] },
-            density: p.density,
-        }));
-
-        io.emit('heatmapSync', heatmapData);
+        // Heatmap syncing removed as requested
+        // io.emit('heatmapSync', heatmapData);
 
         // Periodically emit a Mock Emergency Alert for the Danger Zone
         if (!alertSent || Math.random() > 0.95) {
@@ -49,8 +43,10 @@ const simulateUsers = async (io, userCount = 100, center = { lat: 23.1777, lng: 
                 _id: 'mock-' + Date.now(),
                 description: '⚠️ CRITICAL: Cluster Flux detected Sector-7 Intersection. High density anomaly at Gate Intersection.',
                 location: { type: 'Point', coordinates: [DANGER_ZONE.lng, DANGER_ZONE.lat] },
-                createdAt: new Date().toISOString(),
-                imageUrl: 'https://images.unsplash.com/photo-1541888941259-79273a460da1?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80',
+                created_at: new Date().toISOString(),
+                image_url: 'https://images.unsplash.com/photo-1541888941259-79273a460da1?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80',
+                ctz_id: 'SYSTEM',
+                ord_id: 'null',
             };
             io.emit('newReportMarker', mockAlert);
             alertSent = true;
