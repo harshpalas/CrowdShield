@@ -45,85 +45,26 @@ interface Report {
 
 interface AppState {
   user: User | null;
-  setUser: (user: User | null) => void;
-  updateUser: (userData: Partial<User>) => void;
-  userLocation: { lat: number; lng: number } | null;
-  setUserLocation: (location: { lat: number; lng: number } | null) => void;
+  isAuthenticated: boolean;
   reports: Report[];
+  heatmapData: any[];
+  setUser: (user: User | null) => void;
+  logout: () => void;
   setReports: (reports: Report[]) => void;
   addReport: (report: Report) => void;
-  isSimulating: boolean;
-  setIsSimulating: (isSimulating: boolean) => void;
-  isReporting: boolean;
-  setIsReporting: (isReporting: boolean) => void;
-  reportLocation: { lat: number; lng: number } | null;
-  setReportLocation: (location: { lat: number; lng: number } | null) => void;
-  safeRoute: any[] | null;
-  setSafeRoute: (route: any[] | null) => void;
-  isAdminMode: boolean;
-  setIsAdminMode: (isAdminMode: boolean) => void;
-  updateReportStatus: (reportId: string, status: 'pending' | 'monitoring' | 'cleared') => void;
-  destination: { lat: number; lng: number } | null;
-  setDestination: (location: { lat: number; lng: number } | null) => void;
-  navigationTargetName: string | null;
-  setNavigationTargetName: (name: string | null) => void;
-  isNavigating: boolean;
-  setIsNavigating: (isNavigating: boolean) => void;
-  availableRoutes: any[];
-  setAvailableRoutes: (routes: any[]) => void;
-  isPathCompromised: boolean;
-  setPathCompromised: (isPathCompromised: boolean) => void;
-  navigationAlert: string | null;
-  setNavigationAlert: (alert: string | null) => void;
-  isSelectingDestination: boolean;
-  setIsSelectingDestination: (isSelectingDestination: boolean) => void;
-  fetchReports: () => Promise<void>;
+  setHeatmapData: (data: any[]) => void;
 }
 
-export const useStore = create<AppState>((set) => ({
+const useStore = create<AppState>((set) => ({
   user: null,
-  setUser: (user) => set({ user }),
-  updateUser: (userData) => set((state) => ({ 
-    user: state.user ? { ...state.user, ...userData } : null 
-  })),
-  userLocation: null,
-  setUserLocation: (userLocation) => set({ userLocation }),
+  isAuthenticated: false,
   reports: [],
+  heatmapData: [],
+  setUser: (user) => set({ user, isAuthenticated: true }),
+  logout: () => set({ user: null, isAuthenticated: false }),
   setReports: (reports) => set({ reports }),
   addReport: (report) => set((state) => ({ reports: [report, ...state.reports] })),
-  isSimulating: false,
-  setIsSimulating: (isSimulating) => set({ isSimulating }),
-  isReporting: false,
-  setIsReporting: (isReporting) => set({ isReporting }),
-  reportLocation: null,
-  setReportLocation: (reportLocation) => set({ reportLocation }),
-  safeRoute: null,
-  setSafeRoute: (safeRoute) => set({ safeRoute }),
-  isAdminMode: false,
-  setIsAdminMode: (isAdminMode) => set({ isAdminMode }),
-  updateReportStatus: (reportId, status) => set((state) => ({
-    reports: state.reports.map((r) => r._id === reportId ? { ...r, status } as Report : r)
-  })),
-  destination: null,
-  setDestination: (destination) => set({ destination }),
-  navigationTargetName: null,
-  setNavigationTargetName: (navigationTargetName) => set({ navigationTargetName }),
-  isNavigating: false,
-  setIsNavigating: (isNavigating) => set({ isNavigating }),
-  availableRoutes: [],
-  setAvailableRoutes: (availableRoutes) => set({ availableRoutes }),
-  isPathCompromised: false,
-  setPathCompromised: (isPathCompromised) => set({ isPathCompromised }),
-  navigationAlert: null,
-  setNavigationAlert: (navigationAlert) => set({ navigationAlert }),
-  isSelectingDestination: false,
-  setIsSelectingDestination: (isSelectingDestination) => set({ isSelectingDestination }),
-  fetchReports: async () => {
-    try {
-      const { data } = await axios.get(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'}/api/reports`);
-      set({ reports: data });
-    } catch (error) {
-      console.error('Failed to fetch reports:', error);
-    }
-  },
+  setHeatmapData: (data) => set({ heatmapData: data }),
 }));
+
+export default useStore;
