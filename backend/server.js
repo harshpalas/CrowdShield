@@ -13,17 +13,21 @@ const { simulateUsers } = require('./services/simulationService');
 
 dotenv.config();
 
+const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*", // Be more specific in production
+    origin: frontendUrl,
     methods: ["GET", "POST"]
   }
 });
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: frontendUrl
+}));
 app.use(express.json());
 
 // Inject io into request
