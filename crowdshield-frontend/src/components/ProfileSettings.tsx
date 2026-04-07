@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, User, Mail, Phone, Save, Loader2 } from 'lucide-react';
+import { X, User, Mail, Phone, Save, Loader2, Navigation } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -12,13 +12,12 @@ interface ProfileSettingsProps {
 const ProfileSettings = ({ onClose }: ProfileSettingsProps) => {
   const { user, updateUser } = useStore();
   const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   
   const [formData, setFormData] = useState({
     fullName: user?.fullName || '',
     email: user?.email || '',
     phone: user?.phone || '',
-    password: '',
-    confirmPassword: '',
     familyMembers: user?.familyMembers || [{ name: '', mobile: '' }],
   });
 
@@ -34,21 +33,37 @@ const ProfileSettings = ({ onClose }: ProfileSettingsProps) => {
     }
   };
 
+  const handleSyncLocation = async () => {
+    setSyncing(true);
+    try {
+      const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject);
+      });
+
+      const location: { type: 'Point'; coordinates: [number, number] } = {
+        type: 'Point',
+        coordinates: [pos.coords.longitude, pos.coords.latitude],
+      };
+
+      await axios.put('http://localhost:5000/api/auth/profile', { location }, {
+        headers: { Authorization: `Bearer ${user?.token}` }
+      });
+
+      updateUser({ location });
+      toast.success('GPS Location Synchronized', { icon: '🛰️' });
+    } catch (err) {
+      toast.error('GPS Link Failed');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (formData.password && formData.password !== formData.confirmPassword) {
-      return toast.error('Passwords do not match');
-    }
-
     setLoading(true);
 
     try {
-      const updateData: any = { ...formData };
-      delete updateData.confirmPassword;
-      if (!updateData.password) delete updateData.password;
-
-      const { data } = await axios.put('http://localhost:5000/api/auth/profile', updateData, {
+      const { data } = await axios.put('http://localhost:5000/api/auth/profile', formData, {
         headers: { Authorization: `Bearer ${user?.token}` }
       });
 
@@ -127,25 +142,16 @@ const ProfileSettings = ({ onClose }: ProfileSettingsProps) => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] text-white/20 uppercase tracking-[0.2em] font-black ml-2">Update Password</label>
-              <div className="relative group">
-                <input
-                  type="password"
-                  placeholder="New Password (Leave empty to keep current)"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full px-4 py-4 bg-white/5 border border-white/5 rounded-2xl text-white outline-none focus:bg-white/10 focus:border-blue-500/30 transition-all text-xs"
-                />
-              </div>
-              <div className="relative group mt-2">
-                <input
-                  type="password"
-                  placeholder="Confirm New Password"
-                  value={formData.confirmPassword}
-                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                  className="w-full px-4 py-4 bg-white/5 border border-white/5 rounded-2xl text-white outline-none focus:bg-white/10 focus:border-blue-500/30 transition-all text-xs"
-                />
-              </div>
+              <label className="text-[10px] text-white/20 uppercase tracking-[0.2em] font-black ml-2">GPS Synchronization</label>
+              <button
+                type="button"
+                onClick={handleSyncLocation}
+                disabled={syncing}
+                className="w-full flex items-center justify-center gap-3 py-4 bg-blue-600/10 hover:bg-blue-600/20 text-blue-500 border border-blue-500/20 rounded-2xl transition-all group overflow-hidden relative"
+              >
+                {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4 group-hover:rotate-12 transition-transform" />}
+                <span className="text-xs font-black uppercase tracking-widest">Update Location</span>
+              </button>
             </div>
           </div>
 

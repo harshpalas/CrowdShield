@@ -82,8 +82,6 @@ interface AppState {
   setNavigationAlert: (alert: string | null) => void;
   isSelectingDestination: boolean;
   setIsSelectingDestination: (isSelectingDestination: boolean) => void;
-  activeTab: 'heatmap' | 'navigator' | 'delhi' | 'sos' | 'profile';
-  setActiveTab: (tab: 'heatmap' | 'navigator' | 'delhi' | 'sos' | 'profile') => void;
   fetchReports: () => Promise<void>;
 }
 
@@ -131,13 +129,6 @@ export const useStore = create<AppState>()(
       setNavigationAlert: (navigationAlert) => set({ navigationAlert }),
       isSelectingDestination: false,
       setIsSelectingDestination: (isSelectingDestination) => set({ isSelectingDestination }),
-      activeTab: 'heatmap',
-      setActiveTab: (activeTab) => {
-        set({ activeTab });
-        // If SOS is selected, also trigger isReporting toggle if not already
-        if (activeTab === 'sos') set({ isReporting: true });
-        else if (activeTab === 'heatmap' || activeTab === 'delhi' || activeTab === 'navigator') set({ isReporting: false });
-      },
       fetchReports: async () => {
         try {
           const { data } = await axios.get(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'}/api/reports`);
